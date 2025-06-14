@@ -1,5 +1,3 @@
-// AddProperty.jsx – Fully Updated
-
 import React, { useState } from "react";
 import axios from "axios";
 
@@ -12,43 +10,48 @@ const AddProperty = () => {
   const [imageUrl, setImageUrl] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // 1. Handle file selection
   const handleImageChange = (e) => {
     setImage(e.target.files[0]);
   };
 
+  // 2. Upload image to backend
   const handleImageUpload = async () => {
     if (!image) return alert("Please select an image first.");
     const formData = new FormData();
-    formData.append("image", image); // ✅ use "image" key as per FastAPI backend
+    formData.append("file", image); // Backend expects "file" key!
     try {
-      const res = await axios.post("http://localhost:8000/api/upload", formData, {
+      const res = await axios.post("http://localhost:8000/api/upload-image", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      setImageUrl(`http://localhost:8000${res.data.image_url}`);
+      // Backend returns { url: "/uploads/images/filename.jpg" }
+      setImageUrl(`http://localhost:8000${res.data.url}`);
     } catch (err) {
       console.error("Image upload failed:", err);
       alert("Failed to upload image.");
     }
   };
 
+  // 3. Submit property details to backend
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title || !location || !price || !type || !imageUrl) {
       return alert("Please fill in all fields and upload image.");
     }
 
-    const newProperty = {
-      title,
-      location,
-      price: Number(price),
-      type,
-      image_url: imageUrl,
-    };
+    // Backend expects multipart/form-data, not JSON!
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("location", location);
+    formData.append("price", price);
+    formData.append("type", type);
+    formData.append("image", imageUrl); // Backend expects "image" field
 
-    console.log("Submit Property:", newProperty);
     setLoading(true);
     try {
-      const res = await axios.post("http://localhost:8000/api/add-property", newProperty);
+      await axios.post("http://localhost:8000/api/add-property", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       alert("Property added successfully!");
       // Clear form
       setTitle(""); setLocation(""); setPrice(""); setType(""); setImage(null); setImageUrl("");
@@ -117,6 +120,7 @@ const AddProperty = () => {
         <button
           type="submit"
           className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          disabled={loading}
         >
           {loading ? "Submitting..." : "Add Property"}
         </button>

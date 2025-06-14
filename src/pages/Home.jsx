@@ -1,15 +1,30 @@
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 import PropertyCard from "../components/PropertyCard";
 
-const dummyData = [
-  { id: 1, image: "https://via.placeholder.com/300", title: "2BHK Flat", location: "Delhi", price: "12,000" },
-  { id: 2, image: "https://via.placeholder.com/300", title: "1BHK Studio", location: "Mumbai", price: "15,000" },
-];
-
 const Home = () => {
+  const [properties, setProperties] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    axios.get("http://localhost:8000/api/properties")
+      .then(res => {
+        setProperties(res.data.results);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Failed to fetch properties:", err);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return <div className="p-4">Loading properties...</div>;
+  if (properties.length === 0) return <div className="p-4">No properties found.</div>;
+
   return (
     <div className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-      {dummyData.map((p) => (
-        <PropertyCard key={p.id} property={p} />
+      {properties.map((p) => (
+        <PropertyCard key={p._id} property={p} />
       ))}
     </div>
   );
