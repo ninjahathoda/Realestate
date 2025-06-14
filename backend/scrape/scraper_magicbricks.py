@@ -8,6 +8,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
 from pymongo import MongoClient
 import sys
+import time
 
 # -------- Get city from argument --------
 city = sys.argv[1] if len(sys.argv) > 1 else "noida"
@@ -15,8 +16,7 @@ url = f"https://www.magicbricks.com/property-for-sale/residential-real-estate?ci
 
 # -------- Chrome options --------
 options = Options()
-# Disable headless while testing
-# options.add_argument("--headless=new")
+# options.add_argument("--headless=new")  # Uncomment for production
 options.add_argument("--disable-blink-features=AutomationControlled")
 options.add_experimental_option("excludeSwitches", ["enable-automation"])
 options.add_experimental_option("useAutomationExtension", False)
@@ -65,7 +65,7 @@ for card in cards[:10]:
         title = "N/A"
 
     try:
-        price = card.find_element(By.CSS_SELECTOR, ".mb-srp__card__price--amount").text.strip()
+        price = card.find_element(By.CSS_SELECTOR, ".mb-srp__card__price--amount").text.strip().replace("\n", " ")
     except:
         price = "N/A"
 
@@ -73,24 +73,29 @@ for card in cards[:10]:
         location_elem = card.find_elements(By.CSS_SELECTOR, ".mb-srp__card__location")
         if location_elem and location_elem[0].text.strip():
             location = location_elem[0].text.strip()
+        elif " in " in title:
+            location = title.split(" in ")[-1].strip()
         else:
-            # Fallback: Parse location from title
-            if " in " in title:
-                location = title.split(" in ")[-1].strip()
-            else:
-                location = "N/A"
+            location = "N/A"
     except:
         location = "N/A"
+
+    # Skip if all fields are N/A
+    if title == "N/A" and price == "N/A" and location == "N/A":
+        continue
 
     data = {
         "title": title,
         "price": price,
         "location": location
     }
+
     print(data)
     try:
         collection.insert_one(data)
     except Exception as e:
         print(f"⚠️ MongoDB insert error: {e}")
+
+    time.sleep(1)  # Optional: delay to reduce bot detection
 
 driver.quit()
