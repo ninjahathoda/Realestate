@@ -1,124 +1,91 @@
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel
-from typing import List
-from pymongo import MongoClient
-from bson import ObjectId
-from dotenv import load_dotenv
+from db import properties_collection
+from utils import serialize_property
+from auth import router as auth_router
 import shutil
 import os
 import subprocess
+import sys
 
-# Load environment variables
-load_dotenv()
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-
-# MongoDB setup
-client = MongoClient(MONGO_URI)
-db = client["real_estate"]
-property_collection = db["properties"]
-magicbricks_collection = db["magicbricks_properties"]
-user_collection = db["users"]
-
-# FastAPI app
 app = FastAPI()
 
-# Enable CORS
+# CORS for frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Uploads folder
-UPLOAD_FOLDER = "uploaded_images"
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.mount("/images", StaticFiles(directory=UPLOAD_FOLDER), name="images")
+# Serve uploaded images as static files
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-
-# Models
-class PropertyFilter(BaseModel):
-    location: str
-    priceMin: int
-    priceMax: int
-    type: str
-
-class Property(BaseModel):
-    title: str
-    price: int
-    location: str
-    type: str
-    image: str
-
-class User(BaseModel):
-    name: str
-    email: str
-    password: str
-
-class LoginRequest(BaseModel):
-    email: str
-    password: str
-
-
-@app.post("/api/upload-image")
-async def upload_image(file: UploadFile = File(...)):
-    file_location = os.path.join(UPLOAD_FOLDER, file.filename)
-    with open(file_location, "wb") as f:
-        shutil.copyfileobj(file.file, f)
-    return {"url": f"/images/{file.filename}"}
-
+# Include auth routes
+app.include_router(auth_router, prefix="/api")
 
 @app.post("/api/add-property")
-def add_property(
+async def add_property(
     title: str = Form(...),
-    price: int = Form(...),
     location: str = Form(...),
+    price: float = Form(...),
     type: str = Form(...),
-    image: str = Form(...)
+    image: str = Form(None)
 ):
-    doc = {
+    data = {
         "title": title,
-        "price": price,
         "location": location,
+        "price": f"₹ {price:,.2f}",
         "type": type,
         "image": image
     }
-    result = property_collection.insert_one(doc)
-    return {"message": "Property added", "id": str(result.inserted_id)}
+    try:
+        properties_collection.insert_one(data)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
+    return {"message": "Property added successfully"}
 
+@app.get("/api/properties")
+def get_properties():
+    try:
+        properties = list(properties_collection.find())
+        return {"results": [serialize_property(p) for p in properties]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
 
-@app.post("/api/properties")
-def get_properties(filters: PropertyFilter):
-    query = {
-        "location": {"$regex": filters.location, "$options": "i"},
-        "price": {"$gte": filters.priceMin, "$lte": filters.priceMax},
-        "type": {"$regex": filters.type, "$options": "i"}
-    }
-    results = list(property_collection.find(query))
-    for item in results:
-        item["id"] = str(item["_id"])
-        del item["_id"]
-    return {"results": results}
-
+@app.post("/api/upload-image")
+async def upload_image(file: UploadFile = File(...)):
+    upload_dir = "uploads/images"
+    os.makedirs(upload_dir, exist_ok=True)
+    file_path = os.path.join(upload_dir, file.filename)
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"File upload error: {e}")
+    # Return the public URL for the uploaded image
+    return {"url": f"/uploads/images/{file.filename}"}
 
 @app.get("/api/scrape-magicbricks")
-def scrape(city: str = "noida"):
+def scrape_magicbricks(city: str = Query("noida", pattern="^[a-zA-Z\s]+$")):
+    # Print working directory and script path for debugging
+    print("FastAPI working directory:", os.getcwd())
+    script_path = os.path.join("scrape", "scraper_magicbricks.py")
+    print("Script path:", script_path)
     try:
         result = subprocess.run(
-            ["python", "scrape/scraper_magicbricks.py", city],
+            [sys.executable, script_path, city],
             capture_output=True,
-            text=True
+            text=True,
+            timeout=60
         )
+        print("STDOUT:", result.stdout)
+        print("STDERR:", result.stderr)
         if result.returncode != 0:
-            return JSONResponse(status_code=500, content={"error": result.stderr})
-        listings = list(magicbricks_collection.find().sort("_id", -1).limit(10))
-        for item in listings:
-            item["id"] = str(item["_id"])
-            del item["_id"]
-        return {"results": listings}
+            raise Exception(result.stderr.strip())
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=504, detail="Scraping timed out.")
     except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        raise HTTPException(status_code=500, detail=f"Scraping error: {e}")
+    return get_properties()
