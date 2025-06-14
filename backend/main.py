@@ -154,7 +154,7 @@ def scrape_magicbricks(city: str = Query("noida")):
             print("❌ Scraper error:", result.stderr)
             return JSONResponse(status_code=500, content={"error": result.stderr})
 
-        listings = list(magicbricks_collection.find().sort("_id", -1).limit(10))
+        listings = list(magicbricks_collection.find().sort("_id", -1).limit(30))
         for item in listings:
             item["id"] = str(item["_id"])
             del item["_id"]
