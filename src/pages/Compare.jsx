@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
 
 const Compare = () => {
   const [filters, setFilters] = useState({
@@ -27,8 +26,7 @@ const Compare = () => {
         priceMin: Number(filters.priceMin),
         priceMax: Number(filters.priceMax)
       });
-      setResults(response.data.results);
-      localStorage.setItem("lastSearchResults", JSON.stringify(response.data.results));
+      setResults(response.data.results || []);
     } catch (err) {
       console.error("Error fetching properties:", err);
       alert("Failed to fetch properties.");
@@ -37,37 +35,29 @@ const Compare = () => {
   };
 
   const handleScrapeNow = async () => {
-  setScraping(true);
-  try {
-    const response = await axios.get("http://localhost:8000/api/scrape-magicbricks", {
-      params: {
-        city: filters.location || "noida"
-      }
-    });
-    setResults(response.data.results);
-  } catch (err) {
-    console.error("❌ Frontend scrape error:", err.response?.data || err.message);
-    alert("Failed to scrape MagicBricks.");
-  }
-  setScraping(false);
-};
-
-
-
+    setScraping(true);
+    try {
+      const response = await axios.get(`http://localhost:8000/api/scrape-magicbricks?city=${filters.location || "noida"}`);
+      setResults(response.data.results || []);
+    } catch (err) {
+      console.error("Error scraping MagicBricks:", err);
+      alert("Scraping failed. Make sure backend is running.");
+    }
+    setScraping(false);
+  };
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4">Compare Properties</h2>
+    <div className="p-6 max-w-6xl mx-auto">
+      <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">🏠 Compare Properties</h2>
 
-      {/* Filter Form */}
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <input
           type="text"
           name="location"
-          placeholder="Location"
+          placeholder="City or Area"
           value={filters.location}
           onChange={handleChange}
-          className="p-2 border rounded"
+          className="p-2 border rounded shadow"
         />
         <input
           type="number"
@@ -75,7 +65,7 @@ const Compare = () => {
           placeholder="Min Price"
           value={filters.priceMin}
           onChange={handleChange}
-          className="p-2 border rounded"
+          className="p-2 border rounded shadow"
         />
         <input
           type="number"
@@ -83,58 +73,59 @@ const Compare = () => {
           placeholder="Max Price"
           value={filters.priceMax}
           onChange={handleChange}
-          className="p-2 border rounded"
+          className="p-2 border rounded shadow"
         />
         <select
           name="type"
           value={filters.type}
           onChange={handleChange}
-          className="p-2 border rounded"
+          className="p-2 border rounded shadow"
         >
-          <option value="">Select Type</option>
+          <option value="">Type</option>
           <option value="Apartment">Apartment</option>
           <option value="Villa">Villa</option>
           <option value="Flat">Flat</option>
         </select>
+
         <button
           type="submit"
-          className="col-span-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
+          className="col-span-full md:col-span-2 lg:col-span-2 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
         >
-          {loading ? "Loading..." : "Compare"}
+          {loading ? "Comparing..." : "🔍 Compare"}
         </button>
       </form>
 
-      {/* Scrape Button */}
-      <div className="mb-4">
+      <div className="mb-4 text-center">
         <button
           onClick={handleScrapeNow}
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          className="bg-green-600 text-white px-5 py-2 rounded hover:bg-green-700 transition"
         >
-          {scraping ? "Scraping..." : "Scrape Now (MagicBricks)"}
+          {scraping ? "Scraping..." : "⚙️ Scrape Now (MagicBricks)"}
         </button>
       </div>
 
-      {/* Results */}
-      <div className="grid gap-4">
-        {results.length === 0 && (
-          <p className="text-gray-500">No properties to show. Try filtering or scraping.</p>
-        )}
-        {results.map((property, index) => (
-          <Link to={`/property/${property.id || index}`} key={property.id || index}>
-            <div className="p-4 border rounded shadow-md bg-white hover:bg-gray-50">
-              <h3 className="text-xl font-semibold mb-2">{property.title}</h3>
-              <p>Location: {property.location}</p>
-              <p>Price: {property.price}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {results.length > 0 ? (
+          results.map((property, index) => (
+            <div
+              key={property.id || index}
+              className="p-4 border rounded-lg shadow hover:shadow-lg transition bg-white"
+            >
+              <h3 className="text-lg font-semibold text-blue-800 mb-2">{property.title}</h3>
+              <p><strong>📍 Location:</strong> {property.location}</p>
+              <p><strong>💰 Price:</strong> {property.price}</p>
               {property.image && (
                 <img
-                  src={property.image}
-                  alt="property"
-                  className="w-full mt-2 rounded max-h-52 object-cover"
+                  src={property.image.startsWith("/images") ? `http://localhost:8000${property.image}` : property.image}
+                  alt="Property"
+                  className="w-full h-48 object-cover mt-2 rounded"
                 />
               )}
             </div>
-          </Link>
-        ))}
+          ))
+        ) : (
+          <p className="text-center text-gray-500 col-span-full">No properties found.</p>
+        )}
       </div>
     </div>
   );
