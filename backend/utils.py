@@ -9,12 +9,14 @@ def hash_password(password: str):
 def verify_password(plain: str, hashed: str):
     return pwd_context.verify(plain, hashed)
 
-def serialize_property(property_doc):
+def serialize_property(property_obj):
     return {
-        "id": str(property_doc.get("_id")),
-        "title": property_doc.get("title"),
-        "price": property_doc.get("price"),
-        "location": property_doc.get("location"),
-        "type": property_doc.get("type"),
-        "image": property_doc.get("image")
+        "_id": str(property_obj["_id"]),
+        "title": property_obj.get("title"),
+        "location": property_obj.get("location"),
+        "price": property_obj.get("price"),
+        "type": property_obj.get("type"),
+        "image": property_obj.get("image"),
+        # add other fields as needed
     }
+

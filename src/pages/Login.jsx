@@ -1,81 +1,84 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
-function Login() {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: ""
-  });
-  const [message, setMessage] = useState("");
+const Login = () => {
+  const [email, setEmail] = useState(""); // FastAPI expects 'username'
+  const [password, setPassword] = useState("");
+  const [toast, setToast] = useState(null);
   const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    setMessage("");
-
     try {
-      const response = await axios.post("http://localhost:8000/api/login", formData);
+      // FastAPI OAuth2PasswordRequestForm expects URL-encoded data with 'username' and 'password'
+      const params = new URLSearchParams();
+      params.append("username", email);
+      params.append("password", password);
 
-      if (response.data.message === "Login successful") {
-        localStorage.setItem("user", JSON.stringify({ email: formData.email }));
-        setMessage("Login successful!");
-        navigate("/"); // Redirect to homepage
-      } else {
-        setMessage("Invalid credentials");
-      }
+      const res = await axios.post("http://localhost:8000/api/auth/login", params, {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      });
+
+      // Save token and user info as needed
+      localStorage.setItem("token", res.data.access_token);
+      setToast("Login successful!");
+      setTimeout(() => {
+        setToast(null);
+        navigate("/");
+      }, 1200);
     } catch (err) {
-      console.error("Login error:", err);
-      setMessage("Something went wrong.");
+      setToast("Invalid email or password.");
+      setTimeout(() => setToast(null), 1800);
     }
   };
 
   return (
-    <div className="flex justify-center items-center h-screen bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F5E4B2] via-white to-[#003366]">
       <form
-        className="bg-white p-8 rounded shadow-md w-full max-w-md"
-        onSubmit={handleSubmit}
+        onSubmit={handleLogin}
+        className="bg-white rounded-xl shadow-2xl px-10 py-12 w-full max-w-md border border-gray-200 flex flex-col items-center"
       >
-        <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
-
+        <h2 className="text-3xl font-bold text-indigo-800 mb-6">Welcome Back!</h2>
         <input
           type="email"
-          name="email"
-          placeholder="Email"
-          className="w-full p-2 border rounded mb-4"
-          value={formData.email}
-          onChange={handleChange}
           required
+          placeholder="Email"
+          className="w-full mb-4 px-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:border-indigo-600 font-body text-gray-800 bg-gray-50 placeholder:text-gray-400"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
         />
-
         <input
           type="password"
-          name="password"
-          placeholder="Password"
-          className="w-full p-2 border rounded mb-4"
-          value={formData.password}
-          onChange={handleChange}
           required
+          placeholder="Password"
+          className="w-full mb-6 px-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:border-indigo-600 font-body text-gray-800 bg-gray-50 placeholder:text-gray-400"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
         />
-
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+          className="w-full bg-indigo-700 hover:bg-indigo-800 text-white font-semibold rounded-full px-4 py-3 shadow transition mb-2"
         >
           Login
         </button>
-
-        {message && (
-          <p className="mt-4 text-center text-red-500">{message}</p>
+        <p className="text-gray-700 mt-4 font-body">
+          Don't have an account?{" "}
+          <span
+            className="underline cursor-pointer text-indigo-700 hover:text-indigo-900"
+            onClick={() => navigate("/signup")}
+          >
+            Sign up
+          </span>
+        </p>
+        {toast && (
+          <div className="fixed top-4 right-4 bg-indigo-700 text-white px-4 py-2 rounded shadow-lg font-medium animate-fade-in z-50">
+            {toast}
+          </div>
         )}
       </form>
     </div>
   );
-}
+};
 
 export default Login;

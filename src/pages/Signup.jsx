@@ -1,67 +1,88 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const Signup = () => {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: ""
-  });
+  const [name, setName] = useState("");         // NEW: name field
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [toast, setToast] = useState(null);
+  const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post("http://localhost:8000/api/signup", formData);
-      if (response.data.error) {
-        alert(response.data.error);
-      } else {
-        alert("Signup successful!");
-        setFormData({ name: "", email: "", password: "" });
-      }
-    } catch (error) {
-      console.error("Signup failed:", error);
-      alert("Something went wrong.");
+      await axios.post("http://localhost:8000/api/auth/signup", {
+        name,
+        email,
+        password
+      });
+      setToast("Signup successful! Please log in.");
+      setTimeout(() => {
+        setToast(null);
+        navigate("/login");
+      }, 1200);
+    } catch (err) {
+      setToast(
+        err.response?.data?.detail === "Email already registered"
+          ? "Email already registered."
+          : "Signup failed. Please check your details."
+      );
+      setTimeout(() => setToast(null), 1800);
     }
   };
 
   return (
-    <div className="flex justify-center items-center h-screen bg-gray-100">
-      <form className="bg-white p-8 rounded shadow-md w-full max-w-md" onSubmit={handleSubmit}>
-        <h2 className="text-2xl font-bold mb-6 text-center">Signup</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F5E4B2] via-white to-[#003366]">
+      <form
+        onSubmit={handleSignup}
+        className="bg-white rounded-xl shadow-2xl px-10 py-12 w-full max-w-md border border-gray-200 flex flex-col items-center"
+      >
+        <h2 className="text-3xl font-bold text-indigo-800 mb-6">Create Account</h2>
         <input
           type="text"
-          name="name"
-          placeholder="Name"
-          value={formData.name}
-          onChange={handleChange}
-          className="w-full p-2 border rounded mb-4"
           required
+          placeholder="Name"
+          className="w-full mb-4 px-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:border-indigo-600 font-body text-gray-800 bg-gray-50 placeholder:text-gray-400"
+          value={name}
+          onChange={e => setName(e.target.value)}
         />
         <input
           type="email"
-          name="email"
-          placeholder="Email"
-          value={formData.email}
-          onChange={handleChange}
-          className="w-full p-2 border rounded mb-4"
           required
+          placeholder="Email"
+          className="w-full mb-4 px-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:border-indigo-600 font-body text-gray-800 bg-gray-50 placeholder:text-gray-400"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
         />
         <input
           type="password"
-          name="password"
-          placeholder="Password"
-          value={formData.password}
-          onChange={handleChange}
-          className="w-full p-2 border rounded mb-4"
           required
+          placeholder="Password"
+          className="w-full mb-6 px-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:border-indigo-600 font-body text-gray-800 bg-gray-50 placeholder:text-gray-400"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
         />
-        <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-          Signup
+        <button
+          type="submit"
+          className="w-full bg-indigo-700 hover:bg-indigo-800 text-white font-semibold rounded-full px-4 py-3 shadow transition mb-2"
+        >
+          Sign Up
         </button>
+        <p className="text-gray-700 mt-4 font-body">
+          Already have an account?{" "}
+          <span
+            className="underline cursor-pointer text-indigo-700 hover:text-indigo-900"
+            onClick={() => navigate("/login")}
+          >
+            Login
+          </span>
+        </p>
+        {toast && (
+          <div className="fixed top-4 right-4 bg-indigo-700 text-white px-4 py-2 rounded shadow-lg font-medium animate-fade-in z-50">
+            {toast}
+          </div>
+        )}
       </form>
     </div>
   );
