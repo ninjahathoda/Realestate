@@ -13,7 +13,7 @@ const HeartIcon = ({ filled }) => (
     fill={filled ? "#f43f5e" : "none"}
     viewBox="0 0 24 24"
     stroke="#f43f5e"
-    className={`h-7 w-7 transition-all duration-300 drop-shadow-lg ${filled ? "scale-110" : ""}`}
+    className={`h-7 w-7 transition-all duration-300 drop-shadow-xl ${filled ? "scale-125" : ""}`}
     aria-hidden="true"
   >
     <path
@@ -43,13 +43,16 @@ const PropertyCard = ({
       onClick={onClick}
       tabIndex={onClick ? 0 : undefined}
       role={onClick ? "button" : undefined}
-      className={`group rounded-3xl shadow-xl border border-gray-100 overflow-hidden cursor-pointer flex flex-col transition-all duration-300
-        bg-white hover:shadow-2xl hover:-translate-y-1 hover:ring-4 hover:ring-indigo-100`}
+      className={`
+        group rounded-3xl shadow-2xl border border-gray-100 overflow-hidden cursor-pointer flex flex-col transition-all duration-500
+        bg-white hover:shadow-[0_10px_40px_rgba(99,102,241,0.18)] hover:-translate-y-2 hover:ring-4 hover:ring-indigo-200
+        relative
+      `}
       aria-label={`View details for ${property.title}`}
-      style={{ minHeight: 360, maxWidth: 380, margin: "auto" }}
+      style={{ minHeight: 380, maxWidth: 400, margin: "auto" }}
     >
       {/* Image or gradient */}
-      <div className="relative w-full h-52 overflow-hidden">
+      <div className="relative w-full h-56 overflow-hidden">
         {property.image ? (
           <img
             src={
@@ -58,13 +61,13 @@ const PropertyCard = ({
                 : `http://localhost:8000${property.image}`
             }
             alt={property.title}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 group-hover:brightness-95"
             loading="lazy"
           />
         ) : (
           <div className={`w-full h-full flex items-center justify-center ${bgClass} animate-gradient-move`}>
             <svg
-              className="w-16 h-16 text-white opacity-80"
+              className="w-16 h-16 text-white opacity-90 drop-shadow-lg"
               fill="none"
               stroke="currentColor"
               strokeWidth={2}
@@ -82,27 +85,31 @@ const PropertyCard = ({
               onHeartClick(property._id);
             }}
             aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
-            className="absolute top-3 right-3 bg-white/80 rounded-full p-2 shadow hover:bg-pink-100 transition-all duration-300 focus:outline-none"
+            className="absolute top-4 right-4 bg-white/90 rounded-full p-2 shadow-lg hover:bg-pink-100 hover:scale-110 transition-all duration-300 focus:outline-none z-10"
           >
             <HeartIcon filled={isFavorited} />
           </button>
         )}
         {/* Property type badge */}
         {property.type && (
-          <span className="absolute bottom-3 left-3 bg-indigo-700 text-white text-xs font-bold px-3 py-1 rounded-full shadow select-none">
+          <span className="absolute bottom-4 left-4 bg-indigo-700/90 text-white text-xs font-bold px-4 py-1 rounded-full shadow-lg select-none tracking-wide uppercase">
             {property.type}
           </span>
         )}
       </div>
 
       {/* Details */}
-      <div className="flex-1 flex flex-col p-6">
+      <div className="flex-1 flex flex-col p-7 bg-gradient-to-br from-white via-indigo-50 to-white">
         <div className="flex items-center gap-3 mb-2">
-          <span className="text-2xl font-extrabold text-indigo-700 drop-shadow">{property.price}</span>
+          <span className="text-3xl font-extrabold text-indigo-700 drop-shadow-lg">
+            ₹{property.price}
+          </span>
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-2 tracking-tight">{property.title}</h3>
-        <div className="text-gray-500 text-sm mb-2 line-clamp-1 flex items-center gap-1">
-          <svg className="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+        <h3 className="text-xl font-bold text-gray-900 mb-1 line-clamp-2 tracking-tight drop-shadow">
+          {property.title}
+        </h3>
+        <div className="text-gray-500 text-sm mb-3 line-clamp-1 flex items-center gap-1">
+          <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <path d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z" />
             <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
@@ -123,6 +130,8 @@ const PropertyCard = ({
           }
         `}
       </style>
+      {/* Glowing border effect */}
+      <span className="pointer-events-none absolute inset-0 rounded-3xl border-2 border-transparent group-hover:border-indigo-400 group-hover:shadow-[0_0_24px_4px_rgba(99,102,241,0.15)] transition-all duration-500"></span>
     </div>
   );
 };
