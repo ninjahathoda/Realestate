@@ -25,6 +25,15 @@ The platform leverages a powerful **Python & Selenium** scraping pipeline to agg
 | **Database** | MongoDB |
 
 ---
+##  Screenshots
+
+| | |
+|:---:|:---:|
+| ![](./screenshots/1.jpeg) | ![](./screenshots/2.jpeg) |
+| ![](./screenshots/3.jpeg) | ![](./screenshots/4.jpeg) |
+
+
+
 
 ##  Getting Started
 
